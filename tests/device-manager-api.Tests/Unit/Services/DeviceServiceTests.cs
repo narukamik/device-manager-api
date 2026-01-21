@@ -8,7 +8,6 @@ using device_manager_api.Domain.Entities;
 using device_manager_api.Domain.Enums;
 using FluentAssertions;
 using Moq;
-using Xunit;
 
 namespace device_manager_api.Tests.Unit.Services;
 

@@ -68,40 +68,40 @@ var jwtIssuer = builder.Configuration["JwtSettings:Issuer"];
 var jwtAudience = builder.Configuration["JwtSettings:Audience"];
 
 builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret!)),
-        ClockSkew = TimeSpan.Zero
-    };
-});
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret!)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 builder.Services.AddAuthorization();
 
 // API Versioning
 builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true;
-    options.ApiVersionReader = new UrlSegmentApiVersionReader();
-})
-.AddApiExplorer(options =>
-{
-    options.GroupNameFormat = "'v'V";
-    options.SubstituteApiVersionInUrl = true;
-});
+    {
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.ReportApiVersions = true;
+        options.ApiVersionReader = new UrlSegmentApiVersionReader();
+    })
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'V";
+        options.SubstituteApiVersionInUrl = true;
+    });
 
 // Rate Limiting
 builder.Services.AddMemoryCache();
@@ -117,9 +117,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("DevPolicy", policy =>
     {
         policy.WithOrigins(corsOrigins)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
@@ -146,7 +146,8 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Device Manager API",
         Version = "v1",
-        Description = "REST API for managing device resources with JWT authentication, Redis caching, and comprehensive validation",
+        Description =
+            "REST API for managing device resources with JWT authentication, Redis caching, and comprehensive validation",
         Contact = new OpenApiContact
         {
             Name = "Device Manager Team"
@@ -200,10 +201,7 @@ app.UseSerilogRequestLogging();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Device Manager API v1");
-    });
+    app.UseSwaggerUI(options => { options.SwaggerEndpoint("/swagger/v1/swagger.json", "Device Manager API v1"); });
 }
 
 app.UseHttpsRedirection();
@@ -227,17 +225,43 @@ app.MapHealthChecks("/health/live");
 app.MapControllers();
 
 // Apply migrations and seed data on startup
-using (var scope = app.Services.CreateScope())
+using var scope = app.Services.CreateScope();
+
+var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+    var autoMigrate = configuration.GetValue("DatabaseSettings:AutoMigrateOnStartup", false);
+
+if (!autoMigrate)
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    logger.LogInformation(
+        "Automatic database migration is DISABLED (DatabaseSettings:AutoMigrateOnStartup = false)");
+    logger.LogInformation(
+        "To enable auto-migration: Set DatabaseSettings__AutoMigrateOnStartup=true in environment or appsettings");
+    logger.LogInformation("For manual migration: Run 'dotnet ef database update' from the project directory");
+}
+else
+{
+    logger.LogInformation("Automatic database migration is ENABLED (DatabaseSettings:AutoMigrateOnStartup = true)");
+
+    if (!app.Environment.IsDevelopment())
+    {
+        logger.LogWarning(
+            "⚠️  Auto-migration is running in {Environment} environment. Consider using manual migrations in production!",
+            app.Environment.EnvironmentName);
+    }
+
     try
     {
+        logger.LogInformation("Attempting to apply database migrations");
+
         dbContext.Database.Migrate();
-        Log.Information("Database migrations applied successfully");
+        logger.LogInformation("✅ Database migrations applied successfully");
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "An error occurred while applying database migrations");
+        logger.LogWarning(ex, "Failed to apply migrations");
     }
 }
 

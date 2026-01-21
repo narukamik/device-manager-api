@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: devicemanager
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
@@ -45,6 +45,7 @@ services:
     container_name: devicemanager-seq
     environment:
       ACCEPT_EULA: Y
+      SEQ_FIRSTRUN_NOAUTHENTICATION: true
     ports:
       - "5341:80"
     volumes:
@@ -62,9 +63,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=devicemanager;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres123}"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=devicemanager;Username=postgres;Password=postgres"
       ConnectionStrings__Redis: "redis:6379"
-      JwtSettings__SecretKey: ${JWT_SECRET_KEY:-your-super-secret-key-change-this-in-production-minimum-32-characters-long-for-security}
+      DatabaseSettings__AutoMigrateOnStartup: "true"
+      JwtSettings__SecretKey: your-super-secret-key-change-this-in-production-minimum-32-characters-long-for-security
       JwtSettings__Issuer: DeviceManagerAPI
       JwtSettings__Audience: DeviceManagerClient
       Serilog__WriteTo__1__Args__serverUrl: http://seq:80
