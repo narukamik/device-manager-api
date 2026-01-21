@@ -39,7 +39,7 @@ A production-ready REST API for managing device resources with JWT authenticatio
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/narukamik/device-manager-api
 cd device-manager-api
 
 # Edit .env and set your JWT secret key (or use the default for testing)
